@@ -76,6 +76,30 @@ function Assert-CaDestinationPath {
 }
 
 function Assert-CaListFile {
+        <#
+    .SYNOPSIS
+    Asserts the file where the content will be added
+    
+    .DESCRIPTION
+    Asserts the file where the content will be added
+    
+    .PARAMETER FileName
+    Supply the filename for the list file
+
+    .PARAMETER Destination
+    Supply the destination where to file should be stored
+    
+    .EXAMPLE
+    Assert-CaListFile -FileName 'FullList' -Destination '/location/to/folder'
+
+    .EXAMPLE
+    Assert-CaListFile -FileName 'FullList' -Destination 'C:\Location\To\Folder'
+    
+    .NOTES
+    Author: Christian Verhoeven
+    Source: https://github.com/ChristianVerhoeven/adGuardHomeLists
+    Version: 1.0
+    #>
     [cmdletBinding()]
     Param (
         [Parameter(Mandatory=$true, Position=0, HelpMessage="Supply filename")]
@@ -184,12 +208,6 @@ foreach ($ruleSet in $content.PSObject.Properties) {
     $ruleSetObject.textRules += ("# Time generated: " + (Get-Date -Format "dd-MM-yyyy HH:mm:ss") + " $timeZone" )
     $ruleSetObject.textRules += "# Source: https://github.com/ChristianVerhoeven/adGuardHomeLists"
     $ruleSetObject.textRules += ""
-
-    # Adding content to file
-    Add-Content -Path $filePath -Value ("# " + $ruleSetObject.listDescription)
-    Add-Content -Path $filePath -Value ("# Time generated: " + (Get-Date -Format "dd-MM-yyyy HH:mm:ss") + " $timeZone" )
-    Add-Content -Path $filePath -Value "# Source: https://github.com/ChristianVerhoeven/adGuardHomeLists"
-    Add-Content -Path $filePath -Value ""
 
     # Foreach rule with the same description add the line
     $ruleDescriptions | ForEach-Object {
