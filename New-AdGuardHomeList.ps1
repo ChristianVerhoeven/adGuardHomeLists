@@ -20,7 +20,7 @@ New-AdGuardHomeList.ps1 -Path 'C:\Path\To\file.json' -Verbose
 .NOTES
 Author: Christian Verhoeven
 Source: https://github.com/ChristianVerhoeven/adGuardHomeLists
-Version: 1.0
+Version: 1.1
 #>
 [cmdletBinding()]
 Param (
@@ -75,6 +75,51 @@ function Assert-CaDestinationPath {
     return $return
 }
 
+function Assert-CaListFile {
+    [cmdletBinding()]
+    Param (
+        [Parameter(Mandatory=$true, Position=0, HelpMessage="Supply filename")]
+        $FileName,
+
+        [Parameter(Mandatory=$true, Position=1, HelpMessage="Supply destination path")]
+        $Destination
+
+    )
+
+    # Determine path separator
+    If ($PSVersionTable.PSEdition -eq 'Core' -and $PSVersionTable.Platform -eq 'Unix') { $separator = '/' }
+    else { $separator = '\' }
+
+     # Validate the list file
+     $fileName = $FileName + '.txt'
+     [string]$filePath = $Destination + $separator + $fileName
+ 
+     if (Test-Path -Path $filePath -PathType Leaf) {
+         Write-Verbose "$filePath already exists, re-creating file..."
+         try {
+             $null = Remove-Item -Path $filePath -Force
+             Write-Verbose "$filePath successfully removed."
+ 
+             $newFile = New-Item -Path $filePath -ItemType File -Force
+             Write-Verbose "$filePath successfully created."
+         }
+         catch {
+             Write-Error "Something went wrong" + $_.Exception.Message
+         }
+     } else {
+         Write-Verbose "$filePath does not exist yet, creating..."
+         try {
+            $newFile = New-Item -Path $filePath -ItemType File -Force
+             Write-Verbose "$filePath successfully created."
+         }
+         catch {
+             Write-Error "Something went wrong" + $_.Exception.Message
+         }
+     }
+
+     return $newFile.FullName
+}
+
 # Determine path separator
 If ($PSVersionTable.PSEdition -eq 'Core' -and $PSVersionTable.Platform -eq 'Unix') { $separator = '/' }
 else { $separator = '\' }
@@ -90,12 +135,14 @@ if ((Test-Path -Path $Path -PathType Leaf) -and ($Path -like '*.json')) {
 else { Write-Error "$Path either does not exist or is not of type json" }
 
 # Process the rule sets.
+$totalTextRules = @()
 foreach ($ruleSet in $content.PSObject.Properties) {
 
     # Define variables
     $ruleSetObject = New-Object -TypeName PSObject -Property @{
         listName        = $ruleSet.Name
         listDescription = $ruleSet.Value.description
+        textRules = @()
     }
     $rules = $ruleSet.Value.rules
     $ruleDescriptions = @{}
@@ -127,37 +174,16 @@ foreach ($ruleSet in $content.PSObject.Properties) {
         }
     }
 
-    # Validate the list file
-    $fileName = $ruleSetObject.listName + '.txt'
-    [string]$filePath = $destinationPath + $separator + $fileName
-
-    if (Test-Path -Path $filePath -PathType Leaf) {
-        Write-Verbose "$filePath already exists, re-creating file..."
-        try {
-            $null = Remove-Item -Path $filePath -Force
-            Write-Verbose "$filePath successfully removed."
-
-            $null = New-Item -Path $filePath -ItemType File -Force
-            Write-Verbose "$filePath successfully created."
-        }
-        catch {
-            Write-Error "Something went wrong" + $_.Exception.Message
-        }
-    } else {
-        Write-Verbose "$filePath does not exist yet, creating..."
-        try {
-            $null = New-Item -Path $filePath -ItemType File -Force
-            Write-Verbose "$filePath successfully created."
-        }
-        catch {
-            Write-Error "Something went wrong" + $_.Exception.Message
-        }
-    }
-
     # Creating TimeZone object
     $timeZone = (Get-TimeZone).DisplayName
     $indexOf = $timeZone.IndexOf(' ')
     $timeZone = $timeZone.Substring(0, $indexOf)
+
+    # Add to object
+    $ruleSetObject.textRules += ("# " + $ruleSetObject.listDescription)
+    $ruleSetObject.textRules += ("# Time generated: " + (Get-Date -Format "dd-MM-yyyy HH:mm:ss") + " $timeZone" )
+    $ruleSetObject.textRules += "# Source: https://github.com/ChristianVerhoeven/adGuardHomeLists"
+    $ruleSetObject.textRules += ""
 
     # Adding content to file
     Add-Content -Path $filePath -Value ("# " + $ruleSetObject.listDescription)
@@ -167,13 +193,32 @@ foreach ($ruleSet in $content.PSObject.Properties) {
 
     # Foreach rule with the same description add the line
     $ruleDescriptions | ForEach-Object {
+
+        $ruleSetObject.textRules += ("# " + $_.Keys)
         Add-Content -Path $filePath -Value ("# " + $_.Keys)
 
         foreach ($value in $_.Values) {
+            $ruleSetObject.textRules += $value
             Add-Content -Path $filePath -Value $value
         }
 
+        $ruleSetObject.textRules += ""
         Add-Content -Path $filePath -Value ""
     }
 
+    $totalTextRules += $ruleSetObject
+    $ruleSetObject = $null
+
+}
+
+# Full list
+$fullListPath = Assert-CaListFile -FileName 'fullList' -Destination $destinationPath
+foreach ($textRuleSet in $totalTextRules) {
+    Add-Content -Path $fullListPath -Value $textRuleSet.textRules
+}
+
+# Per Brand/Service
+foreach ($textRuleSet in $totalTextRules) {
+    $filePath = Assert-CaListFile -FileName $textRuleSet.listName -Destination $destinationPath
+    Add-Content -Path $filePath -Value $textRuleSet.textRules
 }
