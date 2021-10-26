@@ -3,4 +3,4 @@
 
 # Log Analytics (data retrieval)
 @@||api.loganalytics.io^$important
-@@||breeze.aimon.applicationinsights.io^$important
+@@||applicationinsights.io^$important
