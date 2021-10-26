@@ -1,2 +1,6 @@
+# A whitelist for Azure Services to work properly
+# Source: https://github.com/ChristianVerhoeven/adGuardHomeLists
+
+# Log Analytics (data retrieval)
 @@||api.loganalytics.io^$important
 @@||breeze.aimon.applicationinsights.io^$important
