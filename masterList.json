@@ -1,0 +1,23 @@
+{
+    "azureServices": {
+        "description": "A whitelist for Azure Services to work properly",
+        "rules": [
+            {
+                "url": "api.loganalytics.io",
+                "modifiers": [
+                    "important"
+                ],
+                "action": "allow",
+                "description": "Log Analytics (data retrieval)"
+            },
+            {
+                "url": "applicationinsights.io",
+                "modifiers": [
+                    "important"
+                ],
+                "action": "allow",
+                "description": "Log Analytics (data retrieval)"
+            }
+        ]
+    }
+}

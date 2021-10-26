@@ -1,6 +1,8 @@
 # A whitelist for Azure Services to work properly
+# Time generated: 26-10-2021 21:19:57 (UTC+01:00)
 # Source: https://github.com/ChristianVerhoeven/adGuardHomeLists
 
 # Log Analytics (data retrieval)
 @@||api.loganalytics.io^$important
 @@||applicationinsights.io^$important
+
